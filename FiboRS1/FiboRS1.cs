@@ -47,20 +47,35 @@ namespace FiboRS1
         [Parameter(Name = "Fibo Multiplier", DefaultValue = 3, MinValue = 0.001, MaxValue = 50, Step = 1)]
         private double FiboMultiplier;
 
-        [Parameter(Name = "Fibo Level", DefaultValue = 764, MinValue = 0, MaxValue = 1000, Step = 1)]
-        private long FiboLevel;
+        /// <summary>
+        /// Fibo levels by index (1 = 382, 2 = 500, 3 = 618, 4 = 764)
+        /// </summary>
+        [Parameter(Name = "Fibo Level", DefaultValue = 4, MinValue = 1, MaxValue = 4, Step = 1)]
+        private long FiboLevelIndex;
 
 
         //This class depends on https://github.com/coriumalpha/Fibonacci-Indicator
         itsasontsi_Fu764 Fu764;
         RSI Rsi;
-        
+
+        //For strategy optimization purposes
+        Dictionary<int, int> FiboLevels = new Dictionary<int, int>()
+        {
+            {1, 382},
+            {2, 500},
+            {3, 618},
+            {4, 764},
+        };
+
+        long FiboLevel;
 
         /// <summary>
         /// This method is used to configure the strategy and is called once before any strategy method is called.
         /// </summary>
         public override void OnInitCalculate()
         {
+            FiboLevel = GetFiboLevelByIndex((int) FiboLevelIndex);
+
             Fu764 = new itsasontsi_Fu764(this.Data, FiboLength, FiboLevel, FiboMultiplier);
             Rsi = new RSI(this.Data, RsiLength, RsiOverBought, RsiOverSold);
         }
@@ -90,26 +105,31 @@ namespace FiboRS1
             //Enter long
             if ((this.Low() < Fu764.Value(0, 5)) && oversoldCross == -1 && this.High() < targetUp)
             {
-                this.Buy(TradeType.AtMarket, 1, 0, "EnLong");
+                this.Buy(TradeType.AtMarket, 1, 0);
             }
 
             //Enter short
             if ((this.High() < Fu764.Value(0, 1)) && overbougthCross == 1 && this.Low() > targetDown)
             {
-                this.Sell(TradeType.AtMarket, 1, 0, "EnShort");
+                this.Sell(TradeType.AtMarket, 1, 0);
             }
 
             //Exit long
             if (this.High() > targetUp)
             {
-                this.ExitLong(TradeType.AtMarket, -1, 0, "ExLong");
+                this.ExitLong(TradeType.AtMarket, -1, 0);
             }
 
             //Exit short
             if (this.Low() > targetDown)
             {
-                this.ExitShort(TradeType.AtMarket, -1, 0, "ExShort");
+                this.ExitShort(TradeType.AtMarket, -1, 0);
             }
+        }
+
+        private int GetFiboLevelByIndex(int fiboIndex)
+        {
+            return FiboLevels[fiboIndex];
         }
 
         #endregion
@@ -176,7 +196,7 @@ namespace FiboRS1
             RsiOverBought = Convert.ToInt32(paramList[3]);
             FiboLength = Convert.ToInt32(paramList[4]);
             FiboMultiplier = Convert.ToDouble(paramList[5]);
-            FiboLevel = Convert.ToInt32(paramList[6]);
+            FiboLevelIndex = Convert.ToInt32(paramList[6]);
         }
 
         /// <summary>
