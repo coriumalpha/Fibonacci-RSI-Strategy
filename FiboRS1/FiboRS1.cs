@@ -29,10 +29,8 @@ namespace FiboRS1
     public class FiboRS1 : StrategyPlugin
     {
         //TODO: Include Parabolic SAR parameters
-
-        //TODO: StopLoss not implemented
-        [Parameter(Name = "Stop Loss (%)", DefaultValue = 2, MinValue = 0, MaxValue = 100, Step = 1)]
-        private long StopLossPercent;
+        [Parameter(Name = "Stop Loss (%)", DefaultValue = 2, MinValue = 0, MaxValue = 100, Step = 0.01)]
+        private double StopLossPercent;
 
         [Parameter(Name = "RSI Length", DefaultValue = 14, MinValue = 0, MaxValue = 100, Step = 1)]
         private long RsiLength;
@@ -99,50 +97,54 @@ namespace FiboRS1
             int overbougthCross = this.CrossType(Rsi.Value(1), RsiOverBought, Rsi.Value(), RsiOverBought);
 
             //Check trade conditions and operate accordingly
-            CalculateTrades(targetUp, targetDown, oversoldCross, overbougthCross);
+            ProccessOrders(targetUp, targetDown, oversoldCross, overbougthCross);
         }
 
         #region Private Methods
 
-        //private void UpdateDynamicStop()
-        //{
-        //    if (this.GetMarketPosition() != 0)
-        //    {
-        //        if ()
-        //            this.StopLoss(-1, 5, GapType.Money, PositionSide.Both, "SL");
-        //    }
-        //}
+        private void ProccessOrders(double targetUp, double targetDown, int oversoldCross, int overbougthCross)
+        {
+            ProccessEntryOrders(targetUp, targetDown, oversoldCross, overbougthCross);
+            ProccessExitOrders(targetUp, targetDown);
+        }
 
-        private void CalculateTrades(double targetUp, double targetDown, int oversoldCross, int overbougthCross)
+        private void ProccessEntryOrders(double targetUp, double targetDown, int oversoldCross, int overbougthCross)
         {
             //Enter long
             if ((this.Low() < Fu764.Value(0, 5)) && oversoldCross == -1 && this.High() < targetUp)
             {
                 this.Buy(TradeType.AtMarket, 1, 0);
+                this.StopLoss(-1, (double)StopLossPercent, GapType.Percentage, PositionSide.Buy);
             }
 
             //Enter short
             if ((this.High() < Fu764.Value(0, 1)) && overbougthCross == 1 && this.Low() > targetDown)
             {
                 this.Sell(TradeType.AtMarket, 1, 0);
-            }
-
-            //Exit long
-            if (this.High() > targetUp)
-            {
-                this.ExitLong(TradeType.AtMarket, -1, 0);
-            }
-
-            //Exit short
-            if (this.Low() > targetDown)
-            {
-                this.ExitShort(TradeType.AtMarket, -1, 0);
+                this.StopLoss(-1, (double)StopLossPercent, GapType.Percentage, PositionSide.Sell);
             }
         }
 
-        private int GetFiboLevelByIndex(int fiboIndex)
+        private void ProccessExitOrders(double targetUp, double targetDown)
         {
-            return FiboLevels[fiboIndex];
+            long marketPosition = this.GetMarketPosition();
+
+            if (marketPosition > 0)
+            {
+                //Exit long
+                if (this.High() > targetUp)
+                {
+                    this.ExitLong(TradeType.AtMarket, -1, 0);
+                }
+            }
+            else if (marketPosition < 0)
+            {
+                //Exit short
+                if (this.Low() > targetDown)
+                {
+                    this.ExitShort(TradeType.AtMarket, -1, 0);
+                }
+            }
         }
 
         #endregion
@@ -171,6 +173,11 @@ namespace FiboRS1
             }
 
             return crossVal;
+        }
+
+        private int GetFiboLevelByIndex(int fiboIndex)
+        {
+            return FiboLevels[fiboIndex];
         }
 
         #endregion
@@ -203,7 +210,7 @@ namespace FiboRS1
         /// <param name="paramList">Parameters list.</param>
         public override void OnSetParameters(List<object> paramList)
         {
-            StopLossPercent = Convert.ToInt32(paramList[0]);
+            StopLossPercent = Convert.ToDouble(paramList[0]);
             RsiLength = Convert.ToInt32(paramList[1]);
             RsiOverSold = Convert.ToInt32(paramList[2]);
             RsiOverBought = Convert.ToInt32(paramList[3]);
