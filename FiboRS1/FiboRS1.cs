@@ -28,6 +28,8 @@ namespace FiboRS1
     [Strategy(Name = "FiboRS1", Description = "Fibonacci + RSI Strategy")]
     public class FiboRS1 : StrategyPlugin
     {
+        //TODO: Include Parabolic SAR parameters
+
         //TODO: StopLoss not implemented
         [Parameter(Name = "Stop Loss (%)", DefaultValue = 2, MinValue = 0, MaxValue = 100, Step = 1)]
         private long StopLossPercent;
@@ -57,6 +59,7 @@ namespace FiboRS1
         //This class depends on https://github.com/coriumalpha/Fibonacci-Indicator
         itsasontsi_Fu764 Fu764;
         RSI Rsi;
+        //ParabolicSAR ParabolicSar;
 
         //For strategy optimization purposes
         Dictionary<int, int> FiboLevels = new Dictionary<int, int>()
@@ -78,6 +81,7 @@ namespace FiboRS1
 
             Fu764 = new itsasontsi_Fu764(this.Data, FiboLength, FiboLevel, FiboMultiplier);
             Rsi = new RSI(this.Data, RsiLength, RsiOverBought, RsiOverSold);
+            //ParabolicSar = new ParabolicSAR(this.Data);
         }
 
         /// <summary>
@@ -99,6 +103,15 @@ namespace FiboRS1
         }
 
         #region Private Methods
+
+        //private void UpdateDynamicStop()
+        //{
+        //    if (this.GetMarketPosition() != 0)
+        //    {
+        //        if ()
+        //            this.StopLoss(-1, 5, GapType.Money, PositionSide.Both, "SL");
+        //    }
+        //}
 
         private void CalculateTrades(double targetUp, double targetDown, int oversoldCross, int overbougthCross)
         {
