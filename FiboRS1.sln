@@ -20,10 +20,10 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {F0EC61DE-859E-48F5-9703-9B8C4EA0CACF}
-		SolutionItemId = 115200240
-		SolutionBinariesItemId = 115200241
-		SolutionSourceCodeItemId = 115200242
 		InitialCatalogRegistryNeeded = False
+		SolutionSourceCodeItemId = 115200242
+		SolutionBinariesItemId = 115200241
+		SolutionItemId = 115200240
+		SolutionGuid = {F0EC61DE-859E-48F5-9703-9B8C4EA0CACF}
 	EndGlobalSection
 EndGlobal
