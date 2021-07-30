@@ -57,7 +57,7 @@ namespace FiboRS1
         //This class depends on https://github.com/coriumalpha/Fibonacci-Indicator
         itsasontsi_Fu764 Fu764;
         RSI Rsi;
-        //ParabolicSAR ParabolicSar;
+        ParabolicSAR ParabolicSar;
 
         //For strategy optimization purposes
         Dictionary<int, int> FiboLevels = new Dictionary<int, int>()
@@ -69,6 +69,7 @@ namespace FiboRS1
         };
 
         long FiboLevel;
+        double? targetLevel;
 
         /// <summary>
         /// This method is used to configure the strategy and is called once before any strategy method is called.
@@ -79,7 +80,7 @@ namespace FiboRS1
 
             Fu764 = new itsasontsi_Fu764(this.Data, FiboLength, FiboLevel, FiboMultiplier);
             Rsi = new RSI(this.Data, RsiLength, RsiOverBought, RsiOverSold);
-            //ParabolicSar = new ParabolicSAR(this.Data);
+            ParabolicSar = new ParabolicSAR(this.Data);
         }
 
         /// <summary>
@@ -96,6 +97,8 @@ namespace FiboRS1
             int oversoldCross = this.CrossType(Rsi.Value(1), RsiOverSold, Rsi.Value(), RsiOverSold);
             int overbougthCross = this.CrossType(Rsi.Value(1), RsiOverBought, Rsi.Value(), RsiOverBought);
 
+            ClearDynamicStops();
+
             //Check trade conditions and operate accordingly
             ProccessOrders(targetUp, targetDown, oversoldCross, overbougthCross);
         }
@@ -106,6 +109,7 @@ namespace FiboRS1
         {
             ProccessEntryOrders(targetUp, targetDown, oversoldCross, overbougthCross);
             ProccessExitOrders(targetUp, targetDown);
+            AdjustDynamicStoploss();
         }
 
         private void ProccessEntryOrders(double targetUp, double targetDown, int oversoldCross, int overbougthCross)
@@ -134,7 +138,8 @@ namespace FiboRS1
                 //Exit long
                 if (this.High() > targetUp)
                 {
-                    this.ExitLong(TradeType.AtMarket, -1, 0);
+                    //this.ExitLong(TradeType.AtMarket, -1, 0);
+                    targetLevel = this.High();
                 }
             }
             else if (marketPosition < 0)
@@ -142,8 +147,53 @@ namespace FiboRS1
                 //Exit short
                 if (this.Low() > targetDown)
                 {
-                    this.ExitShort(TradeType.AtMarket, -1, 0);
+                    //this.ExitShort(TradeType.AtMarket, -1, 0);
+                    targetLevel = this.Low();
                 }
+            }
+        }
+
+        private void AdjustDynamicStoploss()
+        {
+            double stopPrice;
+            long marketPosition = this.GetMarketPosition();
+            double entryPrice = this.GetEntryPrice();
+
+            if (marketPosition > 0)
+            {
+                if (targetLevel.HasValue && this.High() > targetLevel)
+                {
+                    stopPrice = (ParabolicSar.Value() > targetLevel) ? ParabolicSar.Value() : targetLevel.Value;
+                }
+                else
+                {
+                    double staticStopPrice = entryPrice - entryPrice * (StopLossPercent / 100);
+                    stopPrice = staticStopPrice;
+                }
+
+                this.ExitLong(TradeType.AtStop, -1, stopPrice);
+            }
+            else if (marketPosition < 0)
+            {
+                if (targetLevel.HasValue && this.Low() < targetLevel)
+                {
+                    stopPrice = (ParabolicSar.Value() < targetLevel) ? ParabolicSar.Value() : targetLevel.Value;
+                }
+                else
+                {
+                    double staticStopPrice = entryPrice * ((StopLossPercent / 100) + 1);
+                    stopPrice = staticStopPrice;
+                }
+
+                this.ExitShort(TradeType.AtStop, -1, stopPrice);
+            }
+        }
+
+        private void ClearDynamicStops()
+        {
+            if (this.GetMarketPosition() == 0)
+            {
+                targetLevel = null;
             }
         }
 
